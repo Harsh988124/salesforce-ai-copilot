@@ -1,0 +1,49 @@
+<template>
+    <lightning-card title="Agentic Copilot" icon-name="custom:bot">
+        <div class="slds-m-around_medium">
+            <lightning-input 
+                label="Account ID" 
+                value={accountId} 
+                onchange={handleInputChange} 
+                placeholder="Enter 18-char Salesforce ID...">
+            </lightning-input>
+            
+            <lightning-button 
+                label="Analyze Customer" 
+                variant="brand" 
+                onclick={runCopilot} 
+                class="slds-m-top_medium slds-show slds-m-bottom_medium">
+            </lightning-button>
+
+            <!-- Loading Spinner -->
+            <template lwc:if={isLoading}>
+                <div class="slds-p-around_medium slds-is-relative" style="height: 100px;">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Error State -->
+            <template lwc:if={error}>
+                <div class="slds-text-color_error slds-m-top_medium slds-p-around_small slds-box slds-theme_alert-texture">
+                    {error}
+                </div>
+            </template>
+
+            <!-- Results Display -->
+            <template lwc:if={copilotResult}>
+                <div class="slds-m-top_medium">
+                    <h3 class="slds-text-heading_small slds-m-bottom_small"><strong>Key AI Insights</strong></h3>
+                    
+                    <!-- Loop through the insights array returned from FastAPI -->
+                    <template for:each={copilotResult.insights} for:item="insight">
+                        <div key={insight.title} class="slds-box slds-box_x-small slds-m-bottom_small">
+                            <p><strong>{insight.title}</strong></p>
+                            <p class="slds-text-color_weak slds-m-vertical_xx-small">{insight.description}</p>
+                            <p class="slds-text-color_success"><em>Action: {insight.recommended_action}</em></p>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

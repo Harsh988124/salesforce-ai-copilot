@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.env
+.git/
+.gitignore
+.vscode/
+tests/
+.pytest_cache/
+force-app/
+sfdx-project.json
