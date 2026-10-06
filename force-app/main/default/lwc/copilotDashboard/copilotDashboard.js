@@ -1,57 +1,37 @@
 import { LightningElement, api, track } from 'lwc';
 
 export default class CopilotDashboard extends LightningElement {
-    @api recordId; 
-    accountId = '';
-    
-    // @track makes the UI reactively update when these variables change
-    @track copilotResult = null;
-    @track error = null;
-    isLoading = false;
+    @api recordId;
+    @track aiResponse = null;
+    @track isLoading = false;
+    @track errorMessage = null;
 
-    connectedCallback() {
-        if (this.recordId) {
-            this.accountId = this.recordId;
-        }
-    }
-
-    handleInputChange(event) {
-        this.accountId = event.target.value;
-    }
-
-    async runCopilot() {
-        if (!this.accountId) {
-            this.error = "Please enter an Account ID.";
-            return;
-        }
-
+    async handleAnalyze() {
         this.isLoading = true;
-        this.error = null;
-        this.copilotResult = null;
+        this.aiResponse = null;
+        this.errorMessage = null;
 
         try {
-            // Note: Check your app/main.py. If the route has a trailing slash 
-            // at the end, make sure to add it here too!
-            const response = await fetch(`http://localhost:8001/copilot/analyze/${this.accountId}`, {
+            // 1. Matches the exact POST route from main.py
+            const response = await fetch(`http://localhost:8001/copilot/analyze/${this.recordId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include' // <-- CRITICAL: Tells browser to send your Salesforce session
+                // 2. CRITICAL: Tells the browser to send the copilot_session cookie!
+                credentials: 'include' 
             });
 
             if (!response.ok) {
-                // This will extract the exact reason from FastAPI (e.g., 401 Unauthorized)
-                const errorDetails = await response.text(); 
-                throw new Error(`HTTP Error ${response.status}:${errorDetails}`);
+                const errorText = await response.text();
+                throw new Error(`Server Error ${response.status}: ${errorText}`);
             }
 
-            this.copilotResult = await response.json();
-            console.log('Successfully fetched Copilot Data:', this.copilotResult);
+            this.aiResponse = await response.json();
             
-        } catch (err) {
-            console.error('Error fetching copilot data:', err);
-            this.error = `Connection failed: ${err.message}`;
+        } catch (error) {
+            this.errorMessage = error.message;
+            console.error("Fetch Error:", error);
         } finally {
             this.isLoading = false;
         }

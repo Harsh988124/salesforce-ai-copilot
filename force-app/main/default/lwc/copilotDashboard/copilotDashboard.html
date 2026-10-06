@@ -1,48 +1,70 @@
 <template>
-    <lightning-card title="Agentic Copilot" icon-name="custom:bot">
-        <div class="slds-m-around_medium">
-            <lightning-input 
-                label="Account ID" 
-                value={accountId} 
-                onchange={handleInputChange} 
-                placeholder="Enter 18-char Salesforce ID...">
-            </lightning-input>
+    <lightning-card title="Enterprise Customer 360" icon-name="custom:custom15">
+        <div class="slds-p-around_medium">
+            <lightning-button label="Analyze Customer with AI" variant="brand" onclick={handleAnalyze} disabled={isLoading}></lightning-button>
             
-            <lightning-button 
-                label="Analyze Customer" 
-                variant="brand" 
-                onclick={runCopilot} 
-                class="slds-m-top_medium slds-show slds-m-bottom_medium">
-            </lightning-button>
-
-            <!-- Loading Spinner -->
-            <template lwc:if={isLoading}>
-                <div class="slds-p-around_medium slds-is-relative" style="height: 100px;">
-                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
-                </div>
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="AI is thinking..." size="medium"></lightning-spinner>
             </template>
 
-            <!-- Error State -->
-            <template lwc:if={error}>
-                <div class="slds-text-color_error slds-m-top_medium slds-p-around_small slds-box slds-theme_alert-texture">
-                    {error}
-                </div>
-            </template>
+            <template if:true={aiResponse}>
+                <!-- AI Executive Summary -->
+                <template if:true={aiResponse.insights}>
+                    <div class="slds-box slds-theme_default slds-m-top_medium slds-theme_alert-texture">
+                        <h2 class="slds-text-heading_medium slds-m-bottom_small">🧠 AI Executive Summary</h2>
+                        <template for:each={aiResponse.insights} for:item="insight">
+                            <div key={insight.account_health}>
+                                <p><strong>Account Health:</strong> {insight.account_health}</p>
+                                <p><strong>Churn Risk:</strong> {insight.churn_risk}</p>
+                                <p class="slds-m-top_small"><strong>Synthesis:</strong> {insight.executive_summary}</p>
+                                <p class="slds-m-top_small slds-text-color_error"><strong>🚨 Immediate Action Required:</strong> {insight.recommended_action}</p>
+                            </div>
+                        </template>
+                    </div>
+                </template>
 
-            <!-- Results Display -->
-            <template lwc:if={copilotResult}>
-                <div class="slds-m-top_medium">
-                    <h3 class="slds-text-heading_small slds-m-bottom_small"><strong>Key AI Insights</strong></h3>
-                    
-                    <!-- Loop through the insights array returned from FastAPI -->
-                    <template for:each={copilotResult.insights} for:item="insight">
-                        <div key={insight.title} class="slds-box slds-box_x-small slds-m-bottom_small">
-                            <p><strong>{insight.title}</strong></p>
-                            <p class="slds-text-color_weak slds-m-vertical_xx-small">{insight.description}</p>
-                            <p class="slds-text-color_success"><em>Action: {insight.recommended_action}</em></p>
-                        </div>
-                    </template>
-                </div>
+                <!-- Case Investigations -->
+                <template if:true={aiResponse.case_investigations.length}>
+                    <div class="slds-m-top_medium">
+                        <h3 class="slds-text-heading_small">Support Risks</h3>
+                        <template for:each={aiResponse.case_investigations} for:item="caseItem" for:index="index">
+                            <div key={caseItem.case_id} class="slds-box slds-m-bottom_small">
+                                <p><strong>Insight:</strong> {caseItem.insight}</p>
+                                <p><strong>Action:</strong> {caseItem.action}</p>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Sales Risks -->
+                <template if:true={aiResponse.sales_analyses.length}>
+                    <div class="slds-m-top_medium">
+                        <h3 class="slds-text-heading_small">Pipeline Risks</h3>
+                        <template for:each={aiResponse.sales_analyses} for:item="sales" for:index="index">
+                            <div key={sales.opportunity_id} class="slds-box slds-m-bottom_small">
+                                <p><strong>Risk Level:</strong> {sales.risk_level}</p>
+                                <p><strong>Insight:</strong> {sales.insight}</p>
+                                <p><strong>Action:</strong> {sales.action}</p>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Task Follow-ups -->
+                <template if:true={aiResponse.follow_ups.length}>
+                    <div class="slds-m-top_medium">
+                        <h3 class="slds-text-heading_small">Productivity & Outreach</h3>
+                        <template for:each={aiResponse.follow_ups} for:item="task" for:index="index">
+                            <div key={task.task_id} class="slds-box slds-m-bottom_small">
+                                <p><strong>Recommendation:</strong> {task.recommendation}</p>
+                                <div class="slds-box slds-theme_shade slds-m-top_small">
+                                    <p><strong>✉️ AI Draft Email:</strong></p>
+                                    <p>{task.draft_message}</p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
             </template>
         </div>
     </lightning-card>

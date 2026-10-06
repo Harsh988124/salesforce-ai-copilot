@@ -46,7 +46,7 @@ app = FastAPI(
 # 2. Add the CORS Middleware immediately after the FIRST app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://orgfarm-7513724dbb-dev-ed.develop.lightning.force.com"], 
+    allow_origin_regex=r"^https://.*\.force\.com$", 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
