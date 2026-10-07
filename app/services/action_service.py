@@ -3,7 +3,6 @@ from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional
 
 from app.salesforce_client import create_salesforce_record
-
 from app.audit.audit_service import record_audit_event
 
 class ActionRequest(BaseModel):
@@ -20,7 +19,7 @@ class ActionProposal(BaseModel):
     proposed_changes: Dict[str, Any]
     status: str = "PENDING"  # Workflow: PENDING -> APPROVED -> EXECUTED (or REJECTED)
     
-# In-memory store for local development (will be replaced by DB in production)
+# In-memory store for local development
 _ACTION_STORE: Dict[str, ActionProposal] = {}
 
 def propose_action(request: ActionRequest) -> ActionProposal:
@@ -47,7 +46,7 @@ def approve_action(action_id: str) -> Optional[ActionProposal]:
 
 def execute_action(action_id: str, access_token: str, instance_url: str) -> Optional[ActionProposal]:
     """
-    Executes an APPROVED action against the live Salesforce org.
+    Executes an APPROVED action against the live Salesforce org and records audit events.
     """
     action = _ACTION_STORE.get(action_id)
     if not action:
@@ -57,34 +56,8 @@ def execute_action(action_id: str, access_token: str, instance_url: str) -> Opti
     if action.status != "APPROVED":
         raise ValueError("Action must be in APPROVED state before execution.")
     
-    # 2. Execute the operation
-    if action.action_type == "CREATE":
-        sf_response = create_salesforce_record(
-            access_token=access_token,
-            instance_url=instance_url,
-            object_name=action.target_object,
-            data=action.proposed_changes
-        )
-        
-        # 3. Update the state machine on success
-        action.status = "EXECUTED"
-        action.record_id = sf_response.get("id")  # Save the new Salesforce Record ID
-        return action
-    else:
-        raise NotImplementedError("Only CREATE actions are currently supported for writes.")
-
-def execute_action(action_id: str, access_token: str, instance_url: str) -> Optional[ActionProposal]:
-    """
-    Executes an APPROVED action against the live Salesforce org.
-    """
-    action = _ACTION_STORE.get(action_id)
-    if not action:
-        return None
-    
-    if action.status != "APPROVED":
-        raise ValueError("Action must be in APPROVED state before execution.")
-    
     try:
+        # 2. Execute the operation
         if action.action_type == "CREATE":
             sf_response = create_salesforce_record(
                 access_token=access_token,
@@ -93,10 +66,11 @@ def execute_action(action_id: str, access_token: str, instance_url: str) -> Opti
                 data=action.proposed_changes
             )
             
+            # 3. Update the state machine on success
             action.status = "EXECUTED"
-            action.record_id = sf_response.get("id")
+            action.record_id = sf_response.get("id")  # Save the new Salesforce Record ID
             
-            # ---> NEW: Record successful execution in the audit log
+            # 4. Record successful execution in audit log
             record_audit_event(
                 action_id=action.action_id,
                 action_type=action.action_type,
@@ -111,7 +85,7 @@ def execute_action(action_id: str, access_token: str, instance_url: str) -> Opti
             raise NotImplementedError("Only CREATE actions are currently supported for writes.")
             
     except Exception as e:
-        # ---> NEW: Record failed execution in the audit log
+        # Record failed execution in audit log
         record_audit_event(
             action_id=action.action_id,
             action_type=action.action_type,
